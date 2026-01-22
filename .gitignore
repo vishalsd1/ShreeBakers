@@ -31,3 +31,6 @@ backend/.env
 
 # Local data (contains personal info)
 backend/data/*.json
+
+# Ignore all Markdown docs
+*.md
