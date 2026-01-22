@@ -9,6 +9,7 @@ export default function Home({ onNavigate, onAddToCart, onCakeClick }) {
   const { language } = useLanguage();
   const [featuredCakes, setFeaturedCakes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
     fetchFeaturedCakes();
@@ -16,7 +17,7 @@ export default function Home({ onNavigate, onAddToCart, onCakeClick }) {
 
   const fetchFeaturedCakes = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/cakes');
+      const response = await fetch(`${API_BASE}/api/cakes`);
       if (response.ok) {
         const data = await response.json();
         // Get 3 random cakes or first 3

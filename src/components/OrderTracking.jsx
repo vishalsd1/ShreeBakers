@@ -7,6 +7,7 @@ export default function OrderTracking() {
   const [orders, setOrders] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   const handleTrack = async (e) => {
     e.preventDefault();
@@ -19,7 +20,7 @@ export default function OrderTracking() {
     setError('');
     
     try {
-      const response = await fetch('http://localhost:5000/api/orders/track', {
+      const response = await fetch(`${API_BASE}/api/orders/track`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone }),

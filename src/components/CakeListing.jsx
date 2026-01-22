@@ -14,6 +14,7 @@ export default function CakeListing({ onAddToCart, onCakeClick }) {
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("default");
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
     fetchCakes();
@@ -21,7 +22,7 @@ export default function CakeListing({ onAddToCart, onCakeClick }) {
 
   const fetchCakes = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/cakes');
+      const response = await fetch(`${API_BASE}/api/cakes`);
       if (response.ok) {
         const data = await response.json();
         setCakes(data);

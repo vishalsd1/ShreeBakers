@@ -5,6 +5,7 @@ export default function Login({ onLogin, onRegister }) {
   const [formData, setFormData] = useState({ phone: "", name: "", address: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -13,7 +14,7 @@ export default function Login({ onLogin, onRegister }) {
 
     try {
       const endpoint = isRegistering ? '/api/users/register' : '/api/users/login';
-      const response = await fetch(`http://localhost:5000${endpoint}`, {
+      const response = await fetch(`${API_BASE}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),

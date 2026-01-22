@@ -5,6 +5,7 @@ export default function CustomerReviews() {
   const [reviews, setReviews] = useState([]);
   const [newReview, setNewReview] = useState({ name: "", rating: 5, comment: "" });
   const [loading, setLoading] = useState(false);
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
     fetchReviews();
@@ -12,7 +13,7 @@ export default function CustomerReviews() {
 
   const fetchReviews = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/reviews');
+      const response = await fetch(`${API_BASE}/api/reviews`);
       const data = await response.json();
       setReviews(data.reverse());
     } catch (error) {
@@ -25,7 +26,7 @@ export default function CustomerReviews() {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:5000/api/reviews', {
+      const response = await fetch(`${API_BASE}/api/reviews`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newReview),

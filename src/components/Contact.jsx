@@ -4,6 +4,7 @@ import { FaPhone, FaWhatsapp, FaInstagram, FaMapMarkerAlt, FaClock, FaPaperPlane
 export default function Contact() {
   const [formData, setFormData] = useState({ name: "", email: "", message: "" });
   const [submitted, setSubmitted] = useState(false);
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -15,7 +16,7 @@ export default function Contact() {
     setSubmitted(true);
     
     try {
-      const response = await fetch('http://localhost:5000/api/messages', {
+      const response = await fetch(`${API_BASE}/api/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

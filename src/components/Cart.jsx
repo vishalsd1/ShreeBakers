@@ -7,6 +7,7 @@ export default function Cart({ cart, onUpdateCart, onNavigate, onCheckout, user 
   const { language } = useLanguage();
   const [itemToRemove, setItemToRemove] = useState(null);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   
   // Coupon State
   const [couponCode, setCouponCode] = useState("");
@@ -42,7 +43,7 @@ export default function Cart({ cart, onUpdateCart, onNavigate, onCheckout, user 
     if (!couponCode) return;
     
     try {
-      const response = await fetch('http://localhost:5000/api/coupons/verify', {
+      const response = await fetch(`${API_BASE}/api/coupons/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: couponCode }),
@@ -129,7 +130,7 @@ export default function Cart({ cart, onUpdateCart, onNavigate, onCheckout, user 
     };
 
     try {
-      const response = await fetch('http://localhost:5000/api/orders', {
+      const response = await fetch(`${API_BASE}/api/orders`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -7,6 +7,7 @@ export default function AdminDashboard({ onLogout }) {
   const [cakes, setCakes] = useState([]);
   const [activeTab, setActiveTab] = useState('orders');
   const [loading, setLoading] = useState(true);
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   // New Cake Form State
   const [showAddCake, setShowAddCake] = useState(false);
@@ -27,9 +28,9 @@ export default function AdminDashboard({ onLogout }) {
   const fetchData = async () => {
     try {
       const [ordersRes, messagesRes, cakesRes] = await Promise.all([
-        fetch('http://localhost:5000/api/orders'),
-        fetch('http://localhost:5000/api/messages'),
-        fetch('http://localhost:5000/api/cakes')
+        fetch(`${API_BASE}/api/orders`),
+        fetch(`${API_BASE}/api/messages`),
+        fetch(`${API_BASE}/api/cakes`)
       ]);
       
       const ordersData = await ordersRes.json();
@@ -69,7 +70,7 @@ export default function AdminDashboard({ onLogout }) {
             ]
         };
 
-        const response = await fetch('http://localhost:5000/api/cakes', {
+        const response = await fetch(`${API_BASE}/api/cakes`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(cakePayload)
@@ -96,7 +97,7 @@ export default function AdminDashboard({ onLogout }) {
   const handleDeleteCake = async (id) => {
       if (window.confirm('Are you sure you want to delete this cake?')) {
           try {
-              await fetch(`http://localhost:5000/api/cakes/${id}`, {
+              await fetch(`${API_BASE}/api/cakes/${id}`, {
                   method: 'DELETE'
               });
               fetchData();
