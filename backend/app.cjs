@@ -19,16 +19,41 @@ app.use(cors());
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
-// MongoDB Connection (reuse across invocations)
-if (!global._mongoConnected) {
-  mongoose
-    .connect(process.env.MONGO_URI)
-    .then(() => {
-      console.log('MongoDB Connected');
-      global._mongoConnected = true;
-    })
-    .catch(err => console.error('MongoDB Connection Error:', err));
+// MongoDB Connection (cached and awaited per request)
+const MONGO_URI =
+  process.env.MONGO_URI ||
+  process.env.MONGODB_URI ||
+  process.env.MONGO_URL ||
+  process.env.MONO_URL;
+
+let mongoPromise = global._mongoPromise || null;
+async function connectDB() {
+  if (!MONGO_URI) {
+    throw new Error('Missing MongoDB URI. Set MONGO_URI or MONGODB_URI in environment.');
+  }
+  if (mongoPromise) return mongoPromise;
+  mongoPromise = mongoose.connect(MONGO_URI, {
+    serverSelectionTimeoutMS: 10000,
+    socketTimeoutMS: 20000
+  }).then(conn => {
+    global._mongoPromise = conn;
+    console.log('MongoDB Connected');
+    return conn;
+  }).catch(err => {
+    console.error('MongoDB Connection Error:', err);
+    throw err;
+  });
+  return mongoPromise;
 }
+
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Database connection error', error: err.message });
+  }
+});
 
 // Health check
 app.get('/', (req, res) => {
