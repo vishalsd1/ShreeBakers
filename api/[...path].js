@@ -1,5 +1,5 @@
-const app = require('../backend/app.cjs');
+import app from '../backend/app.cjs';
 
-module.exports = (req, res) => {
+export default function handler(req, res) {
   return app(req, res);
-};
+}

@@ -35,6 +35,11 @@ app.get('/', (req, res) => {
   res.send('Shree Bakers Backend is running with MongoDB');
 });
 
+// Test route
+app.get('/api/test', (req, res) => {
+  res.status(200).json({ message: 'Backend is working ✅' });
+});
+
 // --- ORDERS ---
 app.get('/api/orders', async (req, res) => {
   try {
