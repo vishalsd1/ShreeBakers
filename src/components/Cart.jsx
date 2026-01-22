@@ -7,7 +7,7 @@ export default function Cart({ cart, onUpdateCart, onNavigate, onCheckout, user 
   const { language } = useLanguage();
   const [itemToRemove, setItemToRemove] = useState(null);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
-  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const API_BASE = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL : '';
   
   // Coupon State
   const [couponCode, setCouponCode] = useState("");

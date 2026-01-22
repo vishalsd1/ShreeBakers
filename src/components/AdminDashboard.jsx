@@ -7,7 +7,7 @@ export default function AdminDashboard({ onLogout }) {
   const [cakes, setCakes] = useState([]);
   const [activeTab, setActiveTab] = useState('orders');
   const [loading, setLoading] = useState(true);
-  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const API_BASE = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL : '';
 
   // New Cake Form State
   const [showAddCake, setShowAddCake] = useState(false);

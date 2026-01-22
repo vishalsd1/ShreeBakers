@@ -4,7 +4,7 @@ import { FaPhone, FaWhatsapp, FaInstagram, FaMapMarkerAlt, FaClock, FaPaperPlane
 export default function Contact() {
   const [formData, setFormData] = useState({ name: "", email: "", message: "" });
   const [submitted, setSubmitted] = useState(false);
-  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const API_BASE = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL : '';
 
   const handleChange = (e) => {
     const { name, value } = e.target;

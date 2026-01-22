@@ -5,7 +5,7 @@ export default function CustomerReviews() {
   const [reviews, setReviews] = useState([]);
   const [newReview, setNewReview] = useState({ name: "", rating: 5, comment: "" });
   const [loading, setLoading] = useState(false);
-  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const API_BASE = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL : '';
 
   useEffect(() => {
     fetchReviews();
