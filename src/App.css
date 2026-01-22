@@ -1,0 +1,15 @@
+/* App Styles - Tailwind CSS handles most styling */
+/* This file is kept minimal as Tailwind CSS is used for styling */
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-bounce {
+  animation: bounce 1s infinite;
+}
