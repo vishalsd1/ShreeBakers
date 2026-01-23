@@ -1,40 +1,16 @@
-import { useState, useEffect } from "react";
-import { ShoppingCart, Filter, X, Check, Search, Loader } from "lucide-react";
+import { useState } from "react";
+import { ShoppingCart, Filter, X, Check } from "lucide-react";
 import CakeCard from "./CakeCard";
+import { cakesData, categories } from "../data/cakes";
 import { useLanguage } from "../context/LanguageContext";
 import { getTranslation } from "../data/translations";
 
-export default function CakeListing({ onAddToCart, onCakeClick }) {
+export default function CakeListing({ onAddToCart }) {
   const { language } = useLanguage();
-  const [cakes, setCakes] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedWeights, setSelectedWeights] = useState([]);
   const [selectedTypes, setSelectedTypes] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState("default");
-  const API_BASE = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL : '';
-
-  useEffect(() => {
-    fetchCakes();
-  }, []);
-
-  const fetchCakes = async () => {
-    try {
-      const response = await fetch(`${API_BASE}/api/cakes`);
-      if (response.ok) {
-        const data = await response.json();
-        setCakes(data);
-      } else {
-        console.error("Failed to fetch cakes");
-      }
-    } catch (err) {
-      console.error("Error fetching cakes:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const toggleWeight = (weight) => {
     setSelectedWeights(prev =>
@@ -48,16 +24,7 @@ export default function CakeListing({ onAddToCart, onCakeClick }) {
     );
   };
 
-  // Derive unique categories from cakes, ensure "All" is first
-  const categories = ["All", ...new Set(cakes.map(cake => cake.category))].filter(Boolean);
-
-  let filteredCakes = [...cakes];
-
-  if (searchQuery) {
-    filteredCakes = filteredCakes.filter(cake => 
-      cake.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }
+  let filteredCakes = cakesData;
 
   if (selectedCategory !== "All") {
     filteredCakes = filteredCakes.filter(cake => cake.category === selectedCategory);
@@ -73,32 +40,16 @@ export default function CakeListing({ onAddToCart, onCakeClick }) {
     filteredCakes = filteredCakes.filter(cake => selectedTypes.includes(cake.type));
   }
 
-  if (sortBy === "price-low") {
-    filteredCakes.sort((a, b) => a.price - b.price);
-  } else if (sortBy === "price-high") {
-    filteredCakes.sort((a, b) => b.price - a.price);
-  }
-
   const resetFilters = () => {
     setSelectedCategory("All");
     setSelectedWeights([]);
     setSelectedTypes([]);
-    setSearchQuery("");
-    setSortBy("default");
   };
 
   const activeFiltersCount = 
     (selectedCategory !== "All" ? 1 : 0) + 
     selectedWeights.length + 
     selectedTypes.length;
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Loader className="animate-spin text-coral" size={48} />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
@@ -275,10 +226,10 @@ export default function CakeListing({ onAddToCart, onCakeClick }) {
 
           {/* Products Grid */}
           <main className="flex-1 min-w-0">
-            {/* Results Info & Controls */}
-            <div className="mb-6 flex flex-col md:flex-row gap-4 items-center justify-between">
-              <p className="text-sm text-gray-600 self-start md:self-center">
-                <span className="font-bold text-gray-900 text-lg">{filteredCakes.length}</span>
+            {/* Results Info */}
+            <div className="mb-4 sm:mb-6 flex items-center justify-between">
+              <p className="text-xs sm:text-sm text-gray-600">
+                <span className="font-bold text-gray-900 text-sm sm:text-lg">{filteredCakes.length}</span>
                 <span className="ml-1">{language === 'mr' ? (filteredCakes.length !== 1 ? "केक" : "केक") : (filteredCakes.length !== 1 ? "cakes" : "cake")}</span>
                 {selectedCategory !== "All" && (
                   <span className="ml-1 text-gray-500">
@@ -289,31 +240,6 @@ export default function CakeListing({ onAddToCart, onCakeClick }) {
                   </span>
                 )}
               </p>
-
-              <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-                {/* Search */}
-                <div className="relative flex-1 md:w-64">
-                  <input
-                    type="text"
-                    placeholder={language === 'mr' ? "केक शोधा..." : "Search cakes..."}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-coral focus:border-transparent text-sm"
-                  />
-                  <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
-                </div>
-
-                {/* Sort */}
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-coral bg-white text-sm"
-                >
-                  <option value="default">{language === 'mr' ? 'क्रमवारी' : 'Sort By'}</option>
-                  <option value="price-low">{language === 'mr' ? 'किंमत: कमी ते जास्त' : 'Price: Low to High'}</option>
-                  <option value="price-high">{language === 'mr' ? 'किंमत: जास्त ते कमी' : 'Price: High to Low'}</option>
-                </select>
-              </div>
             </div>
 
             {/* Grid */}
@@ -321,10 +247,9 @@ export default function CakeListing({ onAddToCart, onCakeClick }) {
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
                 {filteredCakes.map((cake) => (
                   <CakeCard
-                    key={cake._id}
+                    key={cake.id}
                     cake={cake}
                     onAddToCart={onAddToCart}
-                    onClick={() => onCakeClick(cake)}
                   />
                 ))}
               </div>
