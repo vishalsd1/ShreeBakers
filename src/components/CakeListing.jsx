@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { ShoppingCart, Filter, X, Check } from "lucide-react";
 import CakeCard from "./CakeCard";
-import { cakesData, categories } from "../data/cakes";
 import { useLanguage } from "../context/LanguageContext";
 import { getTranslation } from "../data/translations";
 
