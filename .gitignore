@@ -25,8 +25,13 @@ dist-ssr
 
 # Environment files
 .env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 *.env
 *.env.*
+
 backend/.env
 
 # Local data (contains personal info)
@@ -34,3 +39,6 @@ backend/data/*.json
 
 # Ignore all Markdown docs
 *.md
+
+.vercel
+.env*.local
