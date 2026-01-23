@@ -1,25 +1,47 @@
-import connectDB from "../db.js";
-import Order from "../models/Orders.js";
+import mongoose from "mongoose";
 
-export default async function handler(req, res) {
-  await connectDB();
+const OrderSchema = new mongoose.Schema(
+  {
+    customerInfo: {
+      name: String,
+      phone: String,
+      address: String,
+      deliveryDate: String,
+      deliveryTime: String,
+      customMessage: String,
+    },
 
-  try {
-    // POST /api/orders  (save new order)
-    if (req.method === "POST") {
-      const order = await Order.create(req.body);
-      return res.status(201).json(order);
-    }
+    cartItems: [
+      {
+        id: String,
+        name: String,
+        price: Number,
+        weight: String,
+        quantity: Number,
+        type: String,
+        itemTotal: Number,
+      },
+    ],
 
-    // GET /api/orders  (admin dashboard)
-    if (req.method === "GET") {
-      const orders = await Order.find().sort({ createdAt: -1 });
-      return res.status(200).json(orders);
-    }
+    total: Number,
 
-    return res.status(405).json({ message: "Method Not Allowed" });
-  } catch (error) {
-    console.error("Orders API error:", error);
-    return res.status(500).json({ message: "Server Error" });
-  }
-}
+    status: {
+      type: String,
+      default: "Confirmed",
+    },
+
+    // 🚀 EXPRESS DELIVERY
+    expressDelivery: {
+      type: Boolean,
+      default: false,
+    },
+
+    estimatedDeliveryTime: {
+      type: Date,
+    },
+  },
+  { timestamps: true }
+);
+
+export default mongoose.models.Order ||
+  mongoose.model("Order", OrderSchema);
