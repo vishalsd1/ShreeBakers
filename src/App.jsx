@@ -5,7 +5,7 @@ import Header from "./components/Header";
 import Home from "./components/Home";
 import CakeListing from "./components/CakeListing";
 import Cart from "./components/Cart";
-import Checkout from "./components/Checkout";
+import Checkout from "./components/checkout";
 import OrderConfirmation from "./components/OrderConfirmation";
 import Contact from "./components/Contact";
 import Footer from "./components/Footer";
