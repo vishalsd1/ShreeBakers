@@ -1,9 +1,8 @@
 import mongoose from "mongoose";
 import Order from "../models/Order.js";
 
-// 🔹 Mongo connection (Vercel-safe)
+// ✅ Reuse Mongo connection (Vercel-safe)
 let cached = global.mongoose;
-
 if (!cached) {
   cached = global.mongoose = { conn: null, promise: null };
 }
@@ -12,7 +11,7 @@ async function connectDB() {
   if (cached.conn) return cached.conn;
 
   if (!cached.promise) {
-    cached.promise = mongoose.connect(process.env.MONGO_URI, {
+    cached.promise = mongoose.connect(process.env.MONGODB_URI, {
       bufferCommands: false,
     });
   }
@@ -23,25 +22,18 @@ async function connectDB() {
 
 export default async function handler(req, res) {
   try {
-    // ✅ ALWAYS CONNECT FIRST
     await connectDB();
 
-    // ---------------- GET ALL ORDERS ----------------
+    // -------- GET ALL ORDERS --------
     if (req.method === "GET") {
       const orders = await Order.find().sort({ createdAt: -1 });
       return res.status(200).json(orders);
     }
 
-    // ---------------- CREATE ORDER ----------------
+    // -------- CREATE ORDER --------
     if (req.method === "POST") {
-      const {
-        customerInfo,
-        cartItems,
-        total,
-        expressDelivery,
-      } = req.body;
+      const { customerInfo, cartItems, total, expressDelivery } = req.body;
 
-      // 🔴 VALIDATION (VERY IMPORTANT)
       if (
         !customerInfo ||
         !customerInfo.name ||
@@ -50,36 +42,28 @@ export default async function handler(req, res) {
         !Array.isArray(cartItems) ||
         cartItems.length === 0
       ) {
-        return res.status(400).json({
-          message: "Invalid order data",
-        });
+        return res.status(400).json({ message: "Invalid order data" });
       }
 
       const order = await Order.create({
         customerInfo,
         cartItems,
         total,
-        expressDelivery: !!expressDelivery,
+        expressDelivery: Boolean(expressDelivery),
         status: "Pending",
       });
 
-      // ✅ THIS RESPONSE WAS MISSING IN YOUR CODE
       return res.status(201).json({
         message: "Order placed successfully",
         order,
       });
     }
 
-    // ---------------- METHOD NOT ALLOWED ----------------
-    return res.status(405).json({
-      message: "Method Not Allowed",
-    });
+    return res.status(405).json({ message: "Method Not Allowed" });
   } catch (error) {
-    console.error("ORDERS API ERROR:", error);
-
-    // ✅ ALWAYS RETURN RESPONSE (NO HANG)
+    console.error("ORDERS API CRASH:", error);
     return res.status(500).json({
-      message: "Server error",
+      message: "Internal Server Error",
       error: error.message,
     });
   }
