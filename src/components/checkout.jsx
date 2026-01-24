@@ -1,6 +1,8 @@
 import { useState } from "react";
 
 export default function Checkout({ cart, onCheckout }) {
+  const [loading, setLoading] = useState(false);
+
   const [form, setForm] = useState({
     name: "",
     phone: "",
@@ -8,41 +10,61 @@ export default function Checkout({ cart, onCheckout }) {
     deliveryDate: "",
     deliveryTime: "",
     customMessage: "",
-    expressDelivery: false,
   });
+
+  const [expressDelivery, setExpressDelivery] = useState(false);
 
   const total = cart.reduce((sum, item) => sum + item.itemTotal, 0);
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setForm({
-      ...form,
-      [name]: type === "checkbox" ? checked : value,
-    });
+    setForm({ ...form, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (cart.length === 0) {
+      alert("Cart is empty");
+      return;
+    }
+
+    setLoading(true);
+
     const payload = {
-      customerInfo: form,
+      customerInfo: {
+        name: form.name,
+        phone: form.phone,
+        address: form.address,
+        deliveryDate: form.deliveryDate,
+        deliveryTime: form.deliveryTime,
+        customMessage: form.customMessage,
+      },
       cartItems: cart,
       total,
-      expressDelivery: form.expressDelivery,
+      expressDelivery,
     };
 
-    const res = await fetch("/api/orders", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    try {
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    if (res.ok) {
+      if (!res.ok) {
+        console.error(data);
+        alert("Failed to place order");
+        setLoading(false);
+        return;
+      }
+
       onCheckout(data);
-    } else {
-      alert("Failed to place order");
+    } catch (err) {
+      console.error(err);
+      alert("Server error. Please try again.");
+      setLoading(false);
     }
   };
 
@@ -54,24 +76,61 @@ export default function Checkout({ cart, onCheckout }) {
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <input name="name" placeholder="Full Name" required onChange={handleChange} className="w-full border px-4 py-2 rounded" />
-          <input name="phone" placeholder="Mobile Number" required maxLength="10" onChange={handleChange} className="w-full border px-4 py-2 rounded" />
-          <textarea name="address" placeholder="Delivery Address" required onChange={handleChange} className="w-full border px-4 py-2 rounded" />
+          <input
+            name="name"
+            placeholder="Full Name"
+            required
+            onChange={handleChange}
+            className="w-full border px-4 py-2 rounded"
+          />
+
+          <input
+            name="phone"
+            placeholder="Mobile Number"
+            required
+            maxLength="10"
+            onChange={handleChange}
+            className="w-full border px-4 py-2 rounded"
+          />
+
+          <textarea
+            name="address"
+            placeholder="Delivery Address"
+            required
+            onChange={handleChange}
+            className="w-full border px-4 py-2 rounded"
+          />
 
           <div className="flex gap-4">
-            <input type="date" name="deliveryDate" required onChange={handleChange} className="w-full border px-4 py-2 rounded" />
-            <input type="time" name="deliveryTime" required onChange={handleChange} className="w-full border px-4 py-2 rounded" />
+            <input
+              type="date"
+              name="deliveryDate"
+              required
+              onChange={handleChange}
+              className="w-full border px-4 py-2 rounded"
+            />
+            <input
+              type="time"
+              name="deliveryTime"
+              required
+              onChange={handleChange}
+              className="w-full border px-4 py-2 rounded"
+            />
           </div>
 
-          <input name="customMessage" placeholder="Message on cake (optional)" onChange={handleChange} className="w-full border px-4 py-2 rounded" />
+          <input
+            name="customMessage"
+            placeholder="Message on cake (optional)"
+            onChange={handleChange}
+            className="w-full border px-4 py-2 rounded"
+          />
 
           {/* 🚀 EXPRESS DELIVERY */}
           <label className="flex items-center gap-2 font-bold text-coral">
             <input
               type="checkbox"
-              name="expressDelivery"
-              checked={form.expressDelivery}
-              onChange={handleChange}
+              checked={expressDelivery}
+              onChange={(e) => setExpressDelivery(e.target.checked)}
             />
             🚀 25-Minute Express Delivery
           </label>
@@ -80,8 +139,14 @@ export default function Checkout({ cart, onCheckout }) {
             Total: ₹{total}
           </div>
 
-          <button type="submit" className="w-full bg-coral text-white py-3 rounded-lg font-bold">
-            Place Order
+          <button
+            type="submit"
+            disabled={loading}
+            className={`w-full py-3 rounded-lg font-bold text-white ${
+              loading ? "bg-gray-400" : "bg-coral hover:bg-red-600"
+            }`}
+          >
+            {loading ? "Placing Order..." : "Place Order"}
           </button>
         </form>
       </div>
