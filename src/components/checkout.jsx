@@ -45,24 +45,30 @@ export default function Checkout({ cart, onCheckout }) {
     };
 
     try {
-      const res = await fetch("/api/orders", {
+      const response = await fetch("/api/orders", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
+      const data = await response.json();
 
-      if (!res.ok) {
-        console.error(data);
-        alert("Failed to place order");
+      if (!response.ok) {
+        console.error("Order error:", data);
+        alert(data.message || "Failed to place order");
         setLoading(false);
         return;
       }
 
-      onCheckout(data);
-    } catch (err) {
-      console.error(err);
+      // ✅ VERY IMPORTANT FIX
+      setLoading(false);
+
+      // backend returns { message, order }
+      onCheckout(data.order);
+    } catch (error) {
+      console.error("Network error:", error);
       alert("Server error. Please try again.");
       setLoading(false);
     }
