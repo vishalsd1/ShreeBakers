@@ -30,6 +30,9 @@ export default function Checkout({ cart, onCheckout }) {
 
     setLoading(true);
 
+    // Ensure cartItems is an array (not stringified)
+    const cartItems = Array.isArray(cart) ? cart : JSON.parse(cart);
+
     const payload = {
       customerInfo: {
         name: form.name,
@@ -39,7 +42,7 @@ export default function Checkout({ cart, onCheckout }) {
         deliveryTime: form.deliveryTime,
         customMessage: form.customMessage,
       },
-      cartItems: cart,
+      cartItems: cartItems,
       total,
       discount: 0,
       couponCode: null,
