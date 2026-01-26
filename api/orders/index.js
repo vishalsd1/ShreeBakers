@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import Order from "../models/Order.js";
+import Order from "../models/Orders.js";
 
 // ✅ USE CORRECT ENV NAME
 const MONGO_URI = process.env.MONGO_URI;
