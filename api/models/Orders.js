@@ -25,9 +25,24 @@ const OrderSchema = new mongoose.Schema(
 
     total: Number,
 
+    discount: {
+      type: Number,
+      default: 0,
+    },
+
+    couponCode: {
+      type: String,
+      default: null,
+    },
+
     status: {
       type: String,
       default: "Confirmed",
+    },
+
+    paymentMethod: {
+      type: String,
+      default: "Cash on Delivery",
     },
 
     // 🚀 EXPRESS DELIVERY

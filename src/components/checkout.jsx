@@ -41,6 +41,9 @@ export default function Checkout({ cart, onCheckout }) {
       },
       cartItems: cart,
       total,
+      discount: 0,
+      couponCode: null,
+      paymentMethod: "Cash on Delivery",
       expressDelivery,
     };
 
