@@ -12,8 +12,20 @@ export default function Login({ onLogin, onRegister }) {
     setError("");
     setLoading(true);
 
+    if (!formData.phone || formData.phone.length !== 10) {
+      setError("Please enter a valid 10-digit mobile number");
+      setLoading(false);
+      return;
+    }
+
+    if (isRegistering && (!formData.name || !formData.address)) {
+      setError("Name and address are required for signup");
+      setLoading(false);
+      return;
+    }
+
     try {
-      const endpoint = isRegistering ? '/api/users/register' : '/api/users/login';
+      const endpoint = isRegistering ? '/api/orders?action=register-user' : '/api/orders?action=login-user';
       const response = await fetch(`${API_BASE}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -21,12 +33,13 @@ export default function Login({ onLogin, onRegister }) {
       });
 
       const data = await response.json();
-      
-      if (data.success) {
-        onLogin(data.user);
-      } else {
+
+      if (!response.ok || !data.success) {
         setError(data.message || 'Authentication failed');
+        return;
       }
+
+      onLogin(data.user);
     } catch (err) {
       setError('Network error. Please try again.');
     } finally {

@@ -1,6 +1,18 @@
 import mongoose from "mongoose";
 import Order from "../models/Orders.js";
 
+// User Schema (consolidated to keep function count low)
+const UserSchema = new mongoose.Schema(
+  {
+    phone: { type: String, required: true, unique: true },
+    name: { type: String },
+    address: { type: String },
+  },
+  { timestamps: true }
+);
+
+const User = mongoose.models.User || mongoose.model("User", UserSchema);
+
 // Review Schema (consolidated here to save serverless functions)
 const ReviewSchema = new mongoose.Schema(
   {
@@ -51,6 +63,37 @@ export default async function handler(req, res) {
     const url = new URL(req.url, `http://${req.headers.host}`);
     const action = url.searchParams.get("action");
     const includeAllReviews = url.searchParams.get("all") === "true";
+
+    // USER REGISTER
+    if (action === "register-user" && req.method === "POST") {
+      const { phone, name, address } = req.body;
+      if (!phone || phone.length !== 10 || !name || !address) {
+        return res.status(400).json({ success: false, message: "Missing or invalid fields" });
+      }
+
+      const existing = await User.findOne({ phone });
+      if (existing) {
+        return res.status(409).json({ success: false, message: "User already exists" });
+      }
+
+      const user = await User.create({ phone, name, address });
+      return res.status(201).json({ success: true, user });
+    }
+
+    // USER LOGIN
+    if (action === "login-user" && req.method === "POST") {
+      const { phone } = req.body;
+      if (!phone || phone.length !== 10) {
+        return res.status(400).json({ success: false, message: "Invalid phone" });
+      }
+
+      const user = await User.findOne({ phone });
+      if (!user) {
+        return res.status(404).json({ success: false, message: "User not found" });
+      }
+
+      return res.status(200).json({ success: true, user });
+    }
 
     // REVIEWS ENDPOINTS (use action=reviews)
     if (action === "reviews") {
