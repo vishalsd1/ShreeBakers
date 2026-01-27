@@ -43,8 +43,8 @@ const Coupon = mongoose.models.Coupon || mongoose.model("Coupon", CouponSchema);
 
 // ✅ USE CORRECT ENV NAME
 const MONGO_URI = process.env.MONGO_URI;
-const SERVICE_CENTER_LAT = parseFloat(process.env.SERVICE_CENTER_LAT || "20.0129");
-const SERVICE_CENTER_LNG = parseFloat(process.env.SERVICE_CENTER_LNG || "75.3181");
+const SERVICE_CENTER_LAT = parseFloat(process.env.SERVICE_CENTER_LAT || "20.089541");
+const SERVICE_CENTER_LNG = parseFloat(process.env.SERVICE_CENTER_LNG || "75.422227");
 const SERVICE_RADIUS_KM = parseFloat(process.env.SERVICE_RADIUS_KM || "10");
 
 if (!MONGO_URI) {
