@@ -20,7 +20,7 @@ export default function OrderTracking() {
     setError('');
     
     try {
-      const response = await fetch(`${API_BASE}/api/orders/track`, {
+      const response = await fetch(`${API_BASE}/api/orders?action=track`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone }),
@@ -70,10 +70,10 @@ export default function OrderTracking() {
               </div>
             ) : (
               orders.map((order) => (
-                <div key={order.id} className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+                <div key={order._id} className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <span className="text-sm text-gray-500">Order #{order.id.slice(-6)}</span>
+                      <span className="text-sm text-gray-500">Order #{order._id?.slice(-6)}</span>
                       <p className="font-bold text-chocolate mt-1">
                         {new Date(order.createdAt).toLocaleDateString()}
                       </p>

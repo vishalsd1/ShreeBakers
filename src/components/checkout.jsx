@@ -1,7 +1,11 @@
 import { useState } from "react";
+import { Tag, Percent } from "lucide-react";
 
 export default function Checkout({ cart, onCheckout }) {
   const [loading, setLoading] = useState(false);
+  const [couponCode, setCouponCode] = useState("");
+  const [couponApplied, setCouponApplied] = useState(null);
+  const [couponLoading, setCouponLoading] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
@@ -14,10 +18,48 @@ export default function Checkout({ cart, onCheckout }) {
 
   const [expressDelivery, setExpressDelivery] = useState(false);
 
-  const total = cart.reduce((sum, item) => sum + item.itemTotal, 0);
+  const subtotal = cart.reduce((sum, item) => sum + item.itemTotal, 0);
+  const discount = couponApplied ? couponApplied.discountAmount : 0;
+  const total = couponApplied ? couponApplied.newTotal : subtotal;
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) {
+      alert("Please enter a coupon code");
+      return;
+    }
+
+    setCouponLoading(true);
+    try {
+      const response = await fetch("/api/orders?action=validate-coupon", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: couponCode, total: subtotal }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setCouponApplied(data);
+        alert(`Coupon applied! You saved ₹${data.discountAmount}`);
+      } else {
+        alert(data.message || "Invalid coupon");
+        setCouponApplied(null);
+      }
+    } catch (error) {
+      alert("Failed to validate coupon");
+      setCouponApplied(null);
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setCouponCode("");
+    setCouponApplied(null);
   };
 
   const handleSubmit = async (e) => {
@@ -44,11 +86,15 @@ export default function Checkout({ cart, onCheckout }) {
       },
       cartItems: cartItems,
       total,
-      discount: 0,
-      couponCode: null,
+      discount: discount,
+      couponCode: couponApplied ? couponCode.toUpperCase() : null,
       paymentMethod: "Cash on Delivery",
       expressDelivery,
     };
+
+    console.log("Payload being sent:", payload);
+    console.log("Cart type:", typeof cart, "Is array:", Array.isArray(cart));
+    console.log("CartItems:", cartItems);
 
     try {
       const response = await fetch("/api/orders", {
@@ -137,6 +183,55 @@ export default function Checkout({ cart, onCheckout }) {
             className="w-full border px-4 py-2 rounded"
           />
 
+          {/* Coupon Code Section */}
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Tag className="w-5 h-5 text-coral" />
+              <h3 className="font-bold text-chocolate">Have a Coupon?</h3>
+            </div>
+            
+            {!couponApplied ? (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                  placeholder="Enter coupon code"
+                  className="flex-1 border-2 border-gray-300 px-4 py-2 rounded-lg uppercase font-mono focus:border-coral focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={handleApplyCoupon}
+                  disabled={couponLoading}
+                  className="bg-coral text-white px-6 py-2 rounded-lg font-bold hover:bg-red-600 transition disabled:opacity-50"
+                >
+                  {couponLoading ? "..." : "Apply"}
+                </button>
+              </div>
+            ) : (
+              <div className="bg-green-100 border-2 border-green-300 rounded-lg p-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Percent className="w-5 h-5 text-green-700" />
+                    <div>
+                      <p className="font-bold text-green-800">{couponCode}</p>
+                      <p className="text-sm text-green-700">
+                        {couponApplied.discount}% off - Saved ₹{couponApplied.discountAmount}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRemoveCoupon}
+                    className="text-red-600 font-bold text-sm hover:underline"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* 🚀 EXPRESS DELIVERY */}
           <label className="flex items-center gap-2 font-bold text-coral">
             <input
@@ -147,8 +242,22 @@ export default function Checkout({ cart, onCheckout }) {
             🚀 25-Minute Express Delivery
           </label>
 
-          <div className="bg-gray-50 p-4 rounded font-bold">
-            Total: ₹{total}
+          {/* Price Summary */}
+          <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+            <div className="flex justify-between text-gray-700">
+              <span>Subtotal:</span>
+              <span>₹{subtotal}</span>
+            </div>
+            {couponApplied && (
+              <div className="flex justify-between text-green-600 font-semibold">
+                <span>Discount ({couponApplied.discount}%):</span>
+                <span>- ₹{discount}</span>
+              </div>
+            )}
+            <div className="border-t-2 border-gray-300 pt-2 flex justify-between font-bold text-lg">
+              <span>Total:</span>
+              <span className="text-coral">₹{total}</span>
+            </div>
           </div>
 
           <button

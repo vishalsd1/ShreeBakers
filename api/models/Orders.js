@@ -1,5 +1,19 @@
 import mongoose from "mongoose";
 
+// Define cart item schema separately
+const CartItemSchema = new mongoose.Schema(
+  {
+    id: { type: String, required: true },
+    name: { type: String, required: true },
+    price: { type: Number, required: true },
+    weight: { type: String, required: true },
+    quantity: { type: Number, required: true },
+    type: { type: String, required: true },
+    itemTotal: { type: Number, required: true },
+  },
+  { _id: false }
+);
+
 const OrderSchema = new mongoose.Schema(
   {
     customerInfo: {
@@ -11,17 +25,7 @@ const OrderSchema = new mongoose.Schema(
       customMessage: String,
     },
 
-    cartItems: [
-      {
-        id: String,
-        name: String,
-        price: Number,
-        weight: String,
-        quantity: Number,
-        type: String,
-        itemTotal: Number,
-      },
-    ],
+    cartItems: [CartItemSchema],
 
     total: Number,
 

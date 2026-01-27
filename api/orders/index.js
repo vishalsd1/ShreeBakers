@@ -1,6 +1,34 @@
 import mongoose from "mongoose";
 import Order from "../models/Orders.js";
 
+// Review Schema (consolidated here to save serverless functions)
+const ReviewSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true },
+    rating: { type: Number, required: true, min: 1, max: 5 },
+    comment: { type: String, required: true },
+    approved: { type: Boolean, default: false },
+  },
+  { timestamps: true }
+);
+
+const Review = mongoose.models.Review || mongoose.model("Review", ReviewSchema);
+
+// Coupon Schema (consolidated here)
+const CouponSchema = new mongoose.Schema(
+  {
+    code: { type: String, required: true, unique: true, uppercase: true },
+    discount: { type: Number, required: true },
+    minOrder: { type: Number, default: 0 },
+    maxDiscount: { type: Number, default: 500 },
+    active: { type: Boolean, default: true },
+    expiryDate: { type: Date },
+  },
+  { timestamps: true }
+);
+
+const Coupon = mongoose.models.Coupon || mongoose.model("Coupon", CouponSchema);
+
 // ✅ USE CORRECT ENV NAME
 const MONGO_URI = process.env.MONGO_URI;
 
@@ -20,6 +48,82 @@ export default async function handler(req, res) {
   try {
     await connectDB();
 
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    const action = url.searchParams.get("action");
+    const includeAllReviews = url.searchParams.get("all") === "true";
+
+    // REVIEWS ENDPOINTS (use action=reviews)
+    if (action === "reviews") {
+      if (req.method === "GET") {
+        const filter = includeAllReviews ? {} : { approved: true };
+        const reviews = await Review.find(filter).sort({ createdAt: -1 });
+        return res.status(200).json(reviews);
+      }
+      
+      if (req.method === "POST") {
+        const { name, rating, comment } = req.body;
+        if (!name || !rating || !comment) {
+          return res.status(400).json({ message: "Missing review fields" });
+        }
+        const review = await Review.create({ name, rating, comment, approved: false });
+        return res.status(201).json({ message: "Review submitted!", review });
+      }
+    }
+
+    // APPROVE / REJECT REVIEW (use action=approve-review)
+    if (action === "approve-review" && req.method === "POST") {
+      const { id, approved } = req.body;
+      const review = await Review.findByIdAndUpdate(id, { approved: Boolean(approved) }, { new: true });
+      return res.status(200).json(review);
+    }
+
+    // DELETE REVIEW (use action=delete-review)
+    if (action === "delete-review" && req.method === "POST") {
+      const { id } = req.body;
+      await Review.findByIdAndDelete(id);
+      return res.status(204).end();
+    }
+    
+    // COUPON VALIDATION (use action=validate-coupon)
+    if (action === "validate-coupon" && req.method === "POST") {
+      const { code, total } = req.body;
+      const coupon = await Coupon.findOne({ code: code?.toUpperCase() });
+      
+      if (!coupon || !coupon.active) {
+        return res.status(404).json({ message: "Invalid coupon" });
+      }
+      
+      if (coupon.expiryDate && new Date() > new Date(coupon.expiryDate)) {
+        return res.status(400).json({ message: "Coupon expired" });
+      }
+      
+      if (total < coupon.minOrder) {
+        return res.status(400).json({ message: `Min order: ₹${coupon.minOrder}` });
+      }
+      
+      const discountAmount = Math.min((total * coupon.discount) / 100, coupon.maxDiscount);
+      return res.status(200).json({
+        valid: true,
+        discount: coupon.discount,
+        discountAmount: Math.round(discountAmount),
+        newTotal: Math.round(total - discountAmount),
+      });
+    }
+    
+    // UPDATE ORDER STATUS (use action=update-status)
+    if (action === "update-status" && req.method === "POST") {
+      const { id, status } = req.body;
+      const order = await Order.findByIdAndUpdate(id, { status }, { new: true });
+      return res.status(200).json(order);
+    }
+
+    // TRACK ORDERS BY PHONE (use action=track)
+    if (action === "track" && req.method === "POST") {
+      const { phone } = req.body;
+      const orders = await Order.find({ "customerInfo.phone": phone }).sort({ createdAt: -1 });
+      return res.status(200).json(orders);
+    }
+
     // ---------------- GET ALL ORDERS ----------------
     if (req.method === "GET") {
       const orders = await Order.find().sort({ createdAt: -1 });
@@ -28,7 +132,7 @@ export default async function handler(req, res) {
 
     // ---------------- CREATE ORDER ----------------
     if (req.method === "POST") {
-      const { customerInfo, cartItems, total, expressDelivery } = req.body;
+      const { customerInfo, cartItems, total, expressDelivery, discount, couponCode, paymentMethod } = req.body;
 
       if (
         !customerInfo?.name ||
@@ -46,6 +150,9 @@ export default async function handler(req, res) {
         customerInfo,
         cartItems,
         total,
+        discount: discount || 0,
+        couponCode: couponCode ? couponCode.toUpperCase() : null,
+        paymentMethod: paymentMethod || "Cash on Delivery",
         expressDelivery: Boolean(expressDelivery),
         status: "Confirmed",
         estimatedDeliveryTime: expressDelivery

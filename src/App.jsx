@@ -42,6 +42,13 @@ function App() {
     if (savedUser) setUser(JSON.parse(savedUser));
   }, []);
 
+  useEffect(() => {
+    const adminAuth = localStorage.getItem("adminAuth");
+    if (adminAuth === "true") {
+      setIsAdminAuthenticated(true);
+    }
+  }, []);
+
   /* -------------------- HELPERS -------------------- */
 
   const showToast = (message) => {
@@ -100,11 +107,13 @@ function App() {
 
   const handleAdminLogin = () => {
     setIsAdminAuthenticated(true);
+    localStorage.setItem("adminAuth", "true");
     setCurrentPage("admin-dashboard");
   };
 
   const handleAdminLogout = () => {
     setIsAdminAuthenticated(false);
+    localStorage.removeItem("adminAuth");
     setCurrentPage("home");
   };
 
@@ -116,7 +125,7 @@ function App() {
     return <AdminLogin onLogin={handleAdminLogin} />;
   }
 
-  if (currentPage === "admin-dashboard") {
+  if (currentPage === "admin-dashboard" || isAdminAuthenticated) {
     return <AdminDashboard onLogout={handleAdminLogout} />;
   }
 
