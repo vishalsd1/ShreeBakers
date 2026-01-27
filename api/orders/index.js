@@ -43,6 +43,9 @@ const Coupon = mongoose.models.Coupon || mongoose.model("Coupon", CouponSchema);
 
 // ✅ USE CORRECT ENV NAME
 const MONGO_URI = process.env.MONGO_URI;
+const SERVICE_CENTER_LAT = parseFloat(process.env.SERVICE_CENTER_LAT || "20.0129");
+const SERVICE_CENTER_LNG = parseFloat(process.env.SERVICE_CENTER_LNG || "75.3181");
+const SERVICE_RADIUS_KM = parseFloat(process.env.SERVICE_RADIUS_KM || "10");
 
 if (!MONGO_URI) {
   throw new Error("❌ MONGO_URI is not defined in environment variables");
@@ -54,6 +57,20 @@ async function connectDB() {
     return;
   }
   await mongoose.connect(MONGO_URI);
+}
+
+// Haversine distance in km
+function haversineDistance(lat1, lon1, lat2, lon2) {
+  const toRad = (deg) => (deg * Math.PI) / 180;
+  const R = 6371;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
 }
 
 export default async function handler(req, res) {
@@ -175,17 +192,33 @@ export default async function handler(req, res) {
 
     // ---------------- CREATE ORDER ----------------
     if (req.method === "POST") {
-      const { customerInfo, cartItems, total, expressDelivery, discount, couponCode, paymentMethod } = req.body;
+      const { customerInfo, cartItems, total, expressDelivery, discount, couponCode, paymentMethod, location } = req.body;
 
       if (
         !customerInfo?.name ||
         !customerInfo?.phone ||
         !customerInfo?.address ||
         !Array.isArray(cartItems) ||
-        cartItems.length === 0
+        cartItems.length === 0 ||
+        !location?.lat ||
+        !location?.lng
       ) {
         return res.status(400).json({
           message: "Invalid order data",
+        });
+      }
+
+      // Geofence validation
+      const distanceKm = haversineDistance(
+        SERVICE_CENTER_LAT,
+        SERVICE_CENTER_LNG,
+        Number(location.lat),
+        Number(location.lng)
+      );
+
+      if (distanceKm > SERVICE_RADIUS_KM) {
+        return res.status(400).json({
+          message: `Sorry, delivery is only available within ${SERVICE_RADIUS_KM} km of Phulambri. Your location is ~${distanceKm.toFixed(1)} km away.`,
         });
       }
 
@@ -196,6 +229,10 @@ export default async function handler(req, res) {
         discount: discount || 0,
         couponCode: couponCode ? couponCode.toUpperCase() : null,
         paymentMethod: paymentMethod || "Cash on Delivery",
+        location: {
+          lat: Number(location.lat),
+          lng: Number(location.lng),
+        },
         expressDelivery: Boolean(expressDelivery),
         status: "Confirmed",
         estimatedDeliveryTime: expressDelivery

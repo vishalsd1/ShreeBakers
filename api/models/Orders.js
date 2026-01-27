@@ -49,6 +49,11 @@ const OrderSchema = new mongoose.Schema(
       default: "Cash on Delivery",
     },
 
+    location: {
+      lat: Number,
+      lng: Number,
+    },
+
     // 🚀 EXPRESS DELIVERY
     expressDelivery: {
       type: Boolean,

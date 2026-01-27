@@ -17,6 +17,7 @@ export default function Checkout({ cart, onCheckout }) {
   });
 
   const [expressDelivery, setExpressDelivery] = useState(false);
+  const [location, setLocation] = useState({ lat: null, lng: null, loading: false, error: "" });
 
   const subtotal = cart.reduce((sum, item) => sum + item.itemTotal, 0);
   const discount = couponApplied ? couponApplied.discountAmount : 0;
@@ -24,6 +25,14 @@ export default function Checkout({ cart, onCheckout }) {
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleToggleExpress = (checked) => {
+    setExpressDelivery(checked);
+    if (checked) {
+      // Clear scheduled fields when switching to express so they're not sent/required
+      setForm((prev) => ({ ...prev, deliveryDate: "", deliveryTime: "" }));
+    }
   };
 
   const handleApplyCoupon = async () => {
@@ -70,6 +79,11 @@ export default function Checkout({ cart, onCheckout }) {
       return;
     }
 
+    if (!location.lat || !location.lng) {
+      alert("Please enable location and tap 'Use My Location' so we can verify delivery area.");
+      return;
+    }
+
     setLoading(true);
 
     // Ensure cartItems is an array (not stringified)
@@ -90,6 +104,10 @@ export default function Checkout({ cart, onCheckout }) {
       couponCode: couponApplied ? couponCode.toUpperCase() : null,
       paymentMethod: "Cash on Delivery",
       expressDelivery,
+      location: {
+        lat: location.lat,
+        lng: location.lng,
+      },
     };
 
     console.log("Payload being sent:", payload);
@@ -126,6 +144,28 @@ export default function Checkout({ cart, onCheckout }) {
     }
   };
 
+  const fetchLocation = () => {
+    if (!navigator.geolocation) {
+      setLocation((prev) => ({ ...prev, error: "Geolocation not supported on this device." }));
+      return;
+    }
+    setLocation((prev) => ({ ...prev, loading: true, error: "" }));
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocation({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          loading: false,
+          error: "",
+        });
+      },
+      (err) => {
+        setLocation({ lat: null, lng: null, loading: false, error: err.message || "Unable to fetch location" });
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
+
   return (
     <div className="min-h-screen bg-white py-10 px-4">
       <div className="max-w-xl mx-auto">
@@ -159,22 +199,26 @@ export default function Checkout({ cart, onCheckout }) {
             className="w-full border px-4 py-2 rounded"
           />
 
-          <div className="flex gap-4">
-            <input
-              type="date"
-              name="deliveryDate"
-              required
-              onChange={handleChange}
-              className="w-full border px-4 py-2 rounded"
-            />
-            <input
-              type="time"
-              name="deliveryTime"
-              required
-              onChange={handleChange}
-              className="w-full border px-4 py-2 rounded"
-            />
-          </div>
+          {!expressDelivery && (
+            <div className="flex gap-4">
+              <input
+                type="date"
+                name="deliveryDate"
+                required
+                value={form.deliveryDate}
+                onChange={handleChange}
+                className="w-full border px-4 py-2 rounded"
+              />
+              <input
+                type="time"
+                name="deliveryTime"
+                required
+                value={form.deliveryTime}
+                onChange={handleChange}
+                className="w-full border px-4 py-2 rounded"
+              />
+            </div>
+          )}
 
           <input
             name="customMessage"
@@ -182,6 +226,32 @@ export default function Checkout({ cart, onCheckout }) {
             onChange={handleChange}
             className="w-full border px-4 py-2 rounded"
           />
+
+          {/* GPS Location */}
+          <div className="border-2 border-blue-100 rounded-lg p-4 bg-blue-50">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h3 className="font-bold text-chocolate">Delivery Location</h3>
+                <p className="text-sm text-gray-600">We need your GPS to confirm you are within our delivery area.</p>
+              </div>
+              <button
+                type="button"
+                onClick={fetchLocation}
+                disabled={location.loading}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-60"
+              >
+                {location.loading ? "Locating..." : "Use My Location"}
+              </button>
+            </div>
+            {location.error && (
+              <p className="text-red-600 text-sm mt-2">{location.error}</p>
+            )}
+            {location.lat && location.lng && (
+              <p className="text-green-700 text-sm mt-2 font-semibold">
+                Location locked: {location.lat.toFixed(5)}, {location.lng.toFixed(5)}
+              </p>
+            )}
+          </div>
 
           {/* Coupon Code Section */}
           <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-lg p-4">
@@ -237,10 +307,15 @@ export default function Checkout({ cart, onCheckout }) {
             <input
               type="checkbox"
               checked={expressDelivery}
-              onChange={(e) => setExpressDelivery(e.target.checked)}
+              onChange={(e) => handleToggleExpress(e.target.checked)}
             />
             🚀 25-Minute Express Delivery
           </label>
+          {expressDelivery && (
+            <p className="text-sm text-gray-600 -mt-2">
+              We will deliver in ~25 minutes. Scheduling is disabled for express orders.
+            </p>
+          )}
 
           {/* Price Summary */}
           <div className="bg-gray-50 p-4 rounded-lg space-y-2">
