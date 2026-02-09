@@ -34,6 +34,8 @@ export default function AdminDashboard({ onLogout }) {
     return () => clearInterval(intervalId);
   }, []);
 
+  
+
   const fetchData = async () => {
     try {
       const [ordersRes, messagesRes, cakesRes, reviewsRes] = await Promise.all([
