@@ -44,6 +44,8 @@ const Coupon = mongoose.models.Coupon || mongoose.model("Coupon", CouponSchema);
 
 // ✅ USE CORRECT ENV NAME
 const MONGO_URI = process.env.MONGO_URI;
+const ONESIGNAL_APP_ID = process.env.ONESIGNAL_APP_ID;
+const ONESIGNAL_API_KEY = process.env.ONESIGNAL_API_KEY;
 const SERVICE_CENTER_LAT = parseFloat(process.env.SERVICE_CENTER_LAT || "20.089541");
 const SERVICE_CENTER_LNG = parseFloat(process.env.SERVICE_CENTER_LNG || "75.422227");
 const SERVICE_RADIUS_KM = parseFloat(process.env.SERVICE_RADIUS_KM || "15");
@@ -293,6 +295,33 @@ export default async function handler(req, res) {
         });
       } catch (notifyError) {
         console.error("❌ ORDER NOTIFICATION ERROR:", notifyError);
+      }
+
+      // Push notification to admin phone via OneSignal (non-blocking)
+      if (ONESIGNAL_APP_ID && ONESIGNAL_API_KEY) {
+        try {
+          const orderIdShort = order._id.toString().slice(-6);
+          const itemsSummary = cartItems
+            .map((item) => `${item.quantity}x ${item.name}`)
+            .join(", ");
+
+          await fetch("https://onesignal.com/api/v1/notifications", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Basic ${ONESIGNAL_API_KEY}`,
+            },
+            body: JSON.stringify({
+              app_id: ONESIGNAL_APP_ID,
+              included_segments: ["Subscribed Users"],
+              headings: { en: `New Order #${orderIdShort}` },
+              contents: { en: `${itemsSummary} • Total ₹${total}` },
+              data: { orderId: order._id },
+            }),
+          });
+        } catch (pushError) {
+          console.error("❌ ORDER PUSH ERROR:", pushError);
+        }
       }
 
       // ✅ VERY IMPORTANT: ALWAYS RETURN RESPONSE
