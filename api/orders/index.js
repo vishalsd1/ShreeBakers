@@ -305,7 +305,7 @@ export default async function handler(req, res) {
             .map((item) => `${item.quantity}x ${item.name}`)
             .join(", ");
 
-          await fetch("https://onesignal.com/api/v1/notifications", {
+          const pushRes = await fetch("https://onesignal.com/api/v1/notifications", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -319,6 +319,11 @@ export default async function handler(req, res) {
               data: { orderId: order._id },
             }),
           });
+
+          if (!pushRes.ok) {
+            const errText = await pushRes.text().catch(() => "");
+            console.error("❌ ORDER PUSH FAILED:", pushRes.status, errText);
+          }
         } catch (pushError) {
           console.error("❌ ORDER PUSH ERROR:", pushError);
         }
