@@ -26,6 +26,12 @@ export default function AdminDashboard({ onLogout }) {
 
   useEffect(() => {
     fetchData();
+
+    const intervalId = setInterval(() => {
+      fetchData();
+    }, 15000);
+
+    return () => clearInterval(intervalId);
   }, []);
 
   const fetchData = async () => {
