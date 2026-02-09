@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import Order from "../models/Orders.js";
+import Message from "../models/Message.js";
 
 // User Schema (consolidated to keep function count low)
 const UserSchema = new mongoose.Schema(
@@ -45,7 +46,10 @@ const Coupon = mongoose.models.Coupon || mongoose.model("Coupon", CouponSchema);
 const MONGO_URI = process.env.MONGO_URI;
 const SERVICE_CENTER_LAT = parseFloat(process.env.SERVICE_CENTER_LAT || "20.089541");
 const SERVICE_CENTER_LNG = parseFloat(process.env.SERVICE_CENTER_LNG || "75.422227");
-const SERVICE_RADIUS_KM = parseFloat(process.env.SERVICE_RADIUS_KM || "10");
+const SERVICE_RADIUS_KM = parseFloat(process.env.SERVICE_RADIUS_KM || "15");
+const DRIVING_DISTANCE_ENABLED = process.env.DRIVING_DISTANCE_ENABLED === "true";
+const DRIVING_DISTANCE_TIMEOUT_MS = parseInt(process.env.DRIVING_DISTANCE_TIMEOUT_MS || "4000", 10);
+const OSRM_BASE_URL = process.env.OSRM_BASE_URL || "https://router.project-osrm.org";
 
 if (!MONGO_URI) {
   throw new Error("❌ MONGO_URI is not defined in environment variables");
@@ -71,6 +75,23 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
     Math.sin(dLon / 2) * Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
+}
+
+async function drivingDistanceKm(lat1, lon1, lat2, lon2) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), DRIVING_DISTANCE_TIMEOUT_MS);
+  try {
+    const url = `${OSRM_BASE_URL}/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=false`;
+    const res = await fetch(url, { signal: controller.signal });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const meters = data?.routes?.[0]?.distance;
+    return typeof meters === "number" ? meters / 1000 : null;
+  } catch (err) {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export default async function handler(req, res) {
@@ -209,16 +230,29 @@ export default async function handler(req, res) {
       }
 
       // Geofence validation
-      const distanceKm = haversineDistance(
+      let distanceKm = haversineDistance(
         SERVICE_CENTER_LAT,
         SERVICE_CENTER_LNG,
         Number(location.lat),
         Number(location.lng)
       );
 
+      // Try driving distance (Google-like) via OSRM when enabled; fallback to haversine on error
+      if (DRIVING_DISTANCE_ENABLED) {
+        const drivingKm = await drivingDistanceKm(
+          SERVICE_CENTER_LAT,
+          SERVICE_CENTER_LNG,
+          Number(location.lat),
+          Number(location.lng)
+        );
+        if (drivingKm && !Number.isNaN(drivingKm)) {
+          distanceKm = drivingKm;
+        }
+      }
+
       if (distanceKm > SERVICE_RADIUS_KM) {
         return res.status(400).json({
-          message: `Sorry, delivery is only available within ${SERVICE_RADIUS_KM} km of Phulambri. Your location is ~${distanceKm.toFixed(1)} km away.`,
+          message: `Sorry, delivery is only available within ${SERVICE_RADIUS_KM} km of our bakery. Your location is ~${distanceKm.toFixed(1)} km away. Center: (${SERVICE_CENTER_LAT}, ${SERVICE_CENTER_LNG})`,
         });
       }
 
@@ -239,6 +273,27 @@ export default async function handler(req, res) {
           ? new Date(Date.now() + 25 * 60 * 1000)
           : null,
       });
+
+      // Create admin notification message (non-blocking)
+      try {
+        const itemsSummary = cartItems
+          .map((item) => `${item.quantity}x ${item.name} (${item.weight})`)
+          .join(", ");
+
+        await Message.create({
+          type: "order",
+          name: customerInfo.name || "New Order",
+          email: customerInfo.phone || "N/A",
+          message: `New order #${order._id.toString().slice(-6)} — ${itemsSummary}. Total ₹${total}. Payment: ${paymentMethod || "Cash on Delivery"}.`,
+          meta: {
+            orderId: order._id,
+            phone: customerInfo.phone,
+            total,
+          },
+        });
+      } catch (notifyError) {
+        console.error("❌ ORDER NOTIFICATION ERROR:", notifyError);
+      }
 
       // ✅ VERY IMPORTANT: ALWAYS RETURN RESPONSE
       return res.status(201).json({

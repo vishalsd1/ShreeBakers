@@ -465,30 +465,48 @@ export default function AdminDashboard({ onLogout }) {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 gap-4">
-                    {messages.map((msg) => (
-                      <div
-                        key={msg._id}
-                        className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 sm:p-6 border border-blue-200 hover:shadow-md transition"
-                      >
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex items-center gap-3">
-                            <div className="bg-blue-500 text-white rounded-full w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center font-bold text-lg">
-                              {msg.name.charAt(0).toUpperCase()}
+                    {messages.map((msg) => {
+                      const isOrder = msg.type === "order";
+                      const displayName = isOrder ? "New Order" : msg.name;
+                      const secondaryText = isOrder
+                        ? `Phone: ${msg.meta?.phone || msg.email}`
+                        : msg.email;
+                      const orderId = msg.meta?.orderId
+                        ? msg.meta.orderId.toString().slice(-6)
+                        : null;
+
+                      return (
+                        <div
+                          key={msg._id}
+                          className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 sm:p-6 border border-blue-200 hover:shadow-md transition"
+                        >
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <div className="bg-blue-500 text-white rounded-full w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center font-bold text-lg">
+                                {displayName?.charAt(0).toUpperCase()}
+                              </div>
+                              <div>
+                                <h3 className="font-bold text-gray-900 text-base sm:text-lg">{displayName}</h3>
+                                <p className="text-sm text-gray-600">{secondaryText}</p>
+                              </div>
                             </div>
-                            <div>
-                              <h3 className="font-bold text-gray-900 text-base sm:text-lg">{msg.name}</h3>
-                              <p className="text-sm text-gray-600">{msg.email}</p>
+                            <div className="flex flex-col items-end gap-1">
+                              {isOrder && orderId && (
+                                <span className="text-xs font-semibold bg-amber-100 text-amber-800 px-2 py-1 rounded">
+                                  Order #{orderId}
+                                </span>
+                              )}
+                              <span className="text-xs text-gray-500">
+                                {new Date(msg.createdAt).toLocaleDateString()}
+                              </span>
                             </div>
                           </div>
-                          <span className="text-xs text-gray-500">
-                            {new Date(msg.createdAt).toLocaleDateString()}
-                          </span>
+                          <p className="text-gray-700 leading-relaxed bg-white/50 p-3 sm:p-4 rounded-lg text-sm sm:text-base">
+                            {msg.message}
+                          </p>
                         </div>
-                        <p className="text-gray-700 leading-relaxed bg-white/50 p-3 sm:p-4 rounded-lg text-sm sm:text-base">
-                          {msg.message}
-                        </p>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
